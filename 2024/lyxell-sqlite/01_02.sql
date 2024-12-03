@@ -1,10 +1,22 @@
-create table T (c1 integer, c2 integer) strict;
-.mode csv
-.import 01_data.csv T
+create table T (c1 text) strict;
+.import 01_input.txt T
+.load ./regex0.so
+-- parse input
+with P(c1, c2) as (
+	select
+		regex_capture(captures, 1),
+		regex_capture(captures, 2)
+	from
+		regex_captures(
+			'(\d+)\s+(\d+)',
+			T.c1
+		)
+	join T
+)
 -- solution
-select sum(T.c1*C.occ) from (
+select sum(P.c1*C.occ) from (
 	select c2, count(*) as occ
-    from T
+    from P
     group by c2
 ) C
-join T on C.c2 = T.c1;
+join P on C.c2 = P.c1;
