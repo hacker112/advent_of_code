@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::File,
     io::{self, BufRead},
     ops,
@@ -13,7 +14,7 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct Coord {
     x: i32,
     y: i32,
@@ -26,6 +27,14 @@ impl ops::Add<&Coord> for &Coord {
         let x = self.x + _rhs.x;
         let y = self.y + _rhs.y;
         Coord { x, y }
+    }
+}
+
+impl ops::Add<&Coord> for Coord {
+    type Output = Coord;
+
+    fn add(self, _rhs: &Coord) -> Coord {
+        (&self).add(_rhs)
     }
 }
 
@@ -50,6 +59,11 @@ impl Coord {
 }
 
 fn main() {
+    part1();
+    part2();
+}
+
+fn part1() {
     let needle: Vec<_> = "XMAS".as_bytes().to_owned();
 
     let directions: Vec<Coord> = (-1..=1)
@@ -94,4 +108,59 @@ fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Ve
     }
 
     0
+}
+
+fn part2() {
+    let needle: Vec<_> = "MAS".as_bytes().to_owned();
+
+    let directions: Vec<Coord> = (-1..=1)
+        .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
+        .filter(|c| !(c.x == 0 || c.y == 0))
+        .collect();
+
+    if let Ok(lines) = read_lines("./input") {
+        let matrix: Vec<Vec<u8>> = lines
+            .flatten()
+            .map(|line| line.as_bytes().to_owned())
+            .collect();
+
+        let coords: Vec<_> = (0..matrix.len() as i32)
+            .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
+            .collect();
+
+        let found = directions
+            .iter()
+            .flat_map(|dir| {
+                coords.iter().filter_map(|start| {
+                    let found = rec_find_needle(&start, dir, &needle, &matrix);
+
+                    if found > 0 {
+                        let a_coord = start + dir;
+                        let sign: i32 = dir.x * dir.y;
+                        // println!("A={:?}, {:?}, sign= {}", a_coord, dir, sign);
+                        return Some((a_coord, sign));
+                    }
+
+                    None
+                })
+            })
+            .fold(HashMap::<Coord, i32>::new(), |mut acc, next| {
+                let coord = next.0;
+                let sign = next.1;
+
+                let stored_sign = acc.entry(coord).or_insert(0);
+                *stored_sign += sign;
+
+                acc
+            })
+            .iter()
+            .fold(0, |sum, next| {
+                if *next.1 == 0 {
+                    return sum + 1;
+                }
+                sum
+            });
+
+        println!("part 2: {}", found);
+    }
 }
