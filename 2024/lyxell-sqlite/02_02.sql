@@ -1,38 +1,51 @@
 create table T (c1 text) strict;
-.import 02_data.csv T
+.import 02_input.txt T
+.load ./regex0.so
 
 with
 
--- see 02_01.sql for explanations
-
--- discarded columns
-D(discard) as (select 1 union all select discard + 1 from D where discard < 8),
-
+-- parse input
 L(row, discard, col, curr, prev) as (
 	select
 		T.rowid,
-		D.discard,
-		id,
-		value,
+		D.value,
+		M.rowid,
+		cast(M.match as integer),
 		-- lag value by 1
-		lag(value) over (partition by T.rowid, D.discard order by id) as prev
-	from T, json_each("[" || T.c1 || "]")
-	-- handle discards
-	cross join D
-	where D.discard != id
+		lag(cast(M.match as integer)) over (partition by T.rowid, D.value)
+	from
+		T,
+		regex_find_all("\d+", T.c1) as M
+	-- generate index of columns to discard
+	join generate_series(0, 7) as D
+	where D.value != M.rowid
 ),
 
--- output
-O(id) as (
-	select row
-	from L as L1
-	where
-	not exists (select 1 from L as L2 where (L1.row = L2.row and L1.discard = L2.discard) and (prev is not null and abs(prev - curr) > 3))
-	and (
-		not exists (select 1 from L as L2 where (L1.row = L2.row and L1.discard = L2.discard) and (prev is not null and prev <= curr))
-		or
-		not exists (select 1 from L as L2 where (L1.row = L2.row and L1.discard = L2.discard) and (prev is not null and prev >= curr))
-    )
+-- find all (row, discard) pairs with rule violations
+-- where discard is the index of the discarded column
+I as (
+	select row, discard from L where (abs(prev - curr) > 3)
+	union
+	select * from (
+		select row, discard from L where (prev <= curr)
+		intersect
+		select row, discard from L where (prev >= curr)
+	)
+),
+
+-- the idea here is that if we can count 8 distinct
+-- pairs for one row, the row has rule violations no matter
+-- which column we discard
+V as (
+	select
+		row,
+		count(distinct discard) as violating
+	from I group by row
 )
 
-select count(distinct id) from O;
+select count (*)
+from (
+	select row from L
+	except
+	select row from V where violating == 8
+);

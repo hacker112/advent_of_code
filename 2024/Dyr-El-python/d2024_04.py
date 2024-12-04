@@ -1,20 +1,88 @@
 from aoc_prepare import PrepareAoc
+from utils import Vec2D, Grid2D
+
+
+def parse(inp):
+    d = dict()
+    for yidx, line in enumerate(inp.splitlines()):
+        for xidx, ch in enumerate(line):
+            if ch in "XMAS":
+                d[(xidx, yidx)] = ch
+    return d
 
 
 def part1(inp):
-    pass
+    grid = Grid2D(inp, lambda x: x in "XMAS")
+    directions = [Vec2D(1, 0) << i for i in range(4)] + [
+        Vec2D(1, 1) << i for i in range(4)
+    ]
+    return sum(
+        (
+            "".join((grid.get(pos + direction * i, " ") for i in range(4))) == "XMAS"
+            for direction in directions
+            for pos, ch in grid.items()
+            if ch == "X"
+        )
+    )
 
 
 def part2(inp):
-    pass
+    grid = Grid2D(inp, lambda x: x in "MAS")
+    paths = [
+        [
+            pos << i
+            for pos in [
+                Vec2D(-1, -1),
+                Vec2D(-1, 1),
+                Vec2D(0, 0),
+                Vec2D(1, -1),
+                Vec2D(1, 1),
+            ]
+        ]
+        for i in range(4)
+    ]
+    return sum(
+        ("".join(grid.get(pos + offset, " ") for offset in offsets)) == "MMASS"
+        for offsets in paths
+        for pos, ch in grid.items()
+        if ch == "A"
+    )
 
 
 def test_1_1():
-    pass
+    assert (
+        part1(
+            """MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX"""
+        )
+        == 18
+    )
 
 
 def test_1_2():
-    pass
+    assert (
+        part2(
+            """MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX"""
+        )
+        == 9
+    )
 
 
 def main(inp):

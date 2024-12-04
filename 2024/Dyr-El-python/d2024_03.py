@@ -2,6 +2,7 @@ from aoc_prepare import PrepareAoc
 
 import re
 
+
 def parse_instr(inp):
     p = re.compile(r"(mul\((\d+),(\d+)\))|(do\(\))|(don't\(\))")
     for m in p.finditer(inp):
@@ -13,6 +14,7 @@ def parse_instr(inp):
         elif mul:
             yield ("mul", int(f1), int(f2))
 
+
 def match_mul(g):
     for m in g:
         match m:
@@ -20,6 +22,7 @@ def match_mul(g):
                 yield f1 * f2
             case _:
                 yield 0
+
 
 def match_all(g):
     active = True
@@ -34,6 +37,7 @@ def match_all(g):
             case ("mul", f1, f2):
                 yield f1 * f2 if active else 0
 
+
 def part1(inp):
     return sum(prod for prod in match_mul(parse_instr(inp)))
 
@@ -43,11 +47,21 @@ def part2(inp):
 
 
 def test_1_1():
-    assert part1("""xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))""") == 161
+    assert (
+        part1(
+            """xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"""
+        )
+        == 161
+    )
 
 
 def test_1_2():
-    assert part2("""xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))""") == 48
+    assert (
+        part2(
+            """xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"""
+        )
+        == 48
+    )
 
 
 def main(inp):
