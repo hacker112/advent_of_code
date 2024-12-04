@@ -80,13 +80,13 @@ class PrepareAoc:
         """Does all content fetch but with a cache so it will not order
         fetch if available"""
         try:
-            with open(f"d{self._year}_{self._day}.txt", "rt", encoding="utf8") as f:
+            with open(f"d{self._year}_{self._day:02d}.txt", "rt", encoding="utf8") as f:
                 content = f.read()
                 if len(content) > 0:
                     return content
         except FileNotFoundError:
             pass
         content = self.load_content()
-        with open(f"d{self._year}_{self._day}.txt", "wt", encoding="utf8") as f:
+        with open(f"d{self._year}_{self._day:02d}.txt", "wt", encoding="utf8") as f:
             f.write(content)
         return content
