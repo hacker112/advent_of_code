@@ -15,8 +15,8 @@ where
 
 #[derive(Debug)]
 struct Coord {
-    x: i8,
-    y: i8,
+    x: i32,
+    y: i32,
 }
 
 impl ops::Add<&Coord> for &Coord {
@@ -63,11 +63,11 @@ fn main() {
             .map(|line| line.as_bytes().to_owned())
             .collect();
 
-        let total_found: u8 = directions
+        let total_found: u32 = directions
             .into_iter()
             .map(|dir| {
-                let found: u8 = (0..matrix.len() as i8)
-                    .flat_map(|x| (0..matrix[x as usize].len() as i8).map(move |y| Coord { x, y }))
+                let found: u32 = (0..matrix.len() as i32)
+                    .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
                     .map(|start| rec_find_needle(&start, &dir, &needle, &matrix))
                     .sum();
 
@@ -78,7 +78,7 @@ fn main() {
     }
 }
 
-fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Vec<u8>>) -> u8 {
+fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Vec<u8>>) -> u32 {
     if let Some(char) = needle.first() {
         if let Some(matrix_value) = start.try_get_matrix_value(matrix) {
             let is_match = matrix_value == *char;
