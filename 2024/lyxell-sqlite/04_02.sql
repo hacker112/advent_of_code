@@ -22,41 +22,27 @@ insert into A select row, col from MAT where value = "A";
 insert into S select row, col from MAT where value = "S";
 
 -- solve
-with
-
-C(c) as (
-	select * from generate_series(0, 140)
-),
-
-R(r) as (
-	select * from generate_series(0, 140)
-)
-
 select count(*) from (
 	select *
-		from C
-		join R
+		from A
 		join M as M1
 		join M as M2
-		join A
 		join S as S1
 		join S as S2
 		join (values (1), (-1)) as D1
 		join (values (1), (-1)) as D2
 	where (
-		A.col = c and
-		A.row = r and
 		--
-		M1.col = c + D1.column1 and
-		M1.row = r + D1.column1 and
+		M1.col = A.col + D1.column1 and
+		M1.row = A.row + D1.column1 and
 		--
-		S1.col = c - D1.column1 and
-		S1.row = r - D1.column1 and
+		S1.col = A.col - D1.column1 and
+		S1.row = A.row - D1.column1 and
 		--
-		M2.col = c + D2.column1 and
-		M2.row = r - D2.column1 and
+		M2.col = A.col + D2.column1 and
+		M2.row = A.row - D2.column1 and
 		--
-		S2.col = c - D2.column1 and
-		S2.row = r + D2.column1
+		S2.col = A.col - D2.column1 and
+		S2.row = A.row + D2.column1
 	)
 );
