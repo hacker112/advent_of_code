@@ -39,7 +39,7 @@ R(r, c, v) as (
 ),
 
 -- this table contains the index of the
--- middle element for a row
+-- middle element for each row
 M(r, mid) as (
 	select
 		R.r, 
@@ -48,12 +48,32 @@ M(r, mid) as (
 	group by R.r
 ),
 
+
 -- solve
+
+-- this table contains the ids
+-- of all rows with violations
+V(r) as (
+	-- here we take the cross product
+	-- of R and itself and checks,
+	-- for each column, if there is
+	-- a succeeding column that should
+	-- be a preceeding column according
+	-- to the rules
+	select distinct R1.r
+	from R as R1
+	join R as R2
+	join O
+	where
+		R1.r = R2.r and
+		R1.c < R2.c and
+		O.pred = R2.v and O.succ = R1.v
+),
 
 -- for each (row, col) pair we compute
 -- how many values on the row should
--- precede the value according to
--- the ordering rules
+-- precede the value in the col according
+-- to the rules
 P(r, c, v, npred) as (
 	select
 		R1.r,
@@ -68,47 +88,21 @@ P(r, c, v, npred) as (
 		O.pred = R2.v and
 		O.succ = R1.v 
 	group by R1.r, R1.v
-),
-
--- this table contains all rows with
--- violations
---
--- i.e. all rows that has a column with an
--- index that is lower than the number of
--- predecessors it should have (pigeonhole
--- principle)
-V as (
-	select distinct P.r
-	from P
-	where P.c < P.npred
 )
 
-select * from (
-	-- part 1
-	select
-		sum(P.v)
-	from P
-	join M
-	where
-		P.r = M.r and
-		P.c = M.mid and
-		P.r not in V
-	union all
-	-- part 2
-	select sum(P.v)
-	from P
-	join M
-	where
-		P.r = M.r and
-		-- here we exploit the fact that
-		-- the problem description
-		-- forces the sequence to be
-		-- a totally ordered set, otherwise
-		-- the middle element would not be
-		-- defined. it follows that the
-		-- column index must be equal to
-		-- the number of predecessors when
-		-- zero indexed
-		P.npred = M.mid and
-		P.r in V
-);
+select sum(P.v)
+from P
+join M
+where
+	P.r = M.r and
+	-- here we exploit the fact that
+	-- the problem description of part 2
+	-- forces the sequence to be
+	-- a totally ordered set, since otherwise
+	-- the middle element would not be
+	-- defined. it follows that, when sorted,
+	-- the new column index is equal to
+	-- the number of predecessors the column
+	-- should have according to the rules.
+	M.mid = P.npred and
+	P.r in V;
