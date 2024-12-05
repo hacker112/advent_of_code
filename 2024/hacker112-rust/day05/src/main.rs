@@ -3,92 +3,29 @@ use shared::read_lines;
 
 #[derive(Debug, PartialEq)]
 struct PageOrder {
-    page: u8,
-    before_page: u8,
+    page: u32,
+    before_page: u32,
 }
 
 #[derive(Debug, PartialEq)]
 struct PageUpdate {
-    pages: Vec<u8>,
+    pages: Vec<u32>,
 }
-
-// #[derive(Debug, PartialEq, Eq, Hash)]
-// struct Coord {
-//     x: i32,
-//     y: i32,
-// }
-
-// impl ops::Add<&Coord> for &Coord {
-//     type Output = Coord;
-
-//     fn add(self, _rhs: &Coord) -> Coord {
-//         let x = self.x + _rhs.x;
-//         let y = self.y + _rhs.y;
-//         Coord { x, y }
-//     }
-// }
-
-// impl ops::Add<&Coord> for Coord {
-//     type Output = Coord;
-
-//     fn add(self, _rhs: &Coord) -> Coord {
-//         (&self).add(_rhs)
-//     }
-// }
-
-// impl Coord {
-//     fn try_get_matrix_value(&self, matrix: &Vec<Vec<u8>>) -> Option<u8> {
-//         if self.x < 0 || self.y < 0 {
-//             return None;
-//         }
-
-//         let x = self.x as usize;
-//         let y = self.y as usize;
-
-//         if let Some(row) = matrix.get(x) {
-//             if let Some(val) = row.get(y) {
-//                 // println!("val ({},{}){}", x, y, val);
-//                 return Some(val.clone());
-//             }
-//         }
-
-//         None
-//     }
-// }
 
 fn main() {
     let filename = "./input";
     let (page_orders, pages_updates) = read_pages(filename);
 
-    println!("A: {}, {}", page_orders.len(), pages_updates.len());
-    // let total_found = part1(&matrix);
-    // println!("part 1: {}", total_found);
+    let sum = part1(&page_orders, &pages_updates);
+    println!("part 1: {}", sum);
 
     // let found = part2(&matrix);
     // println!("part 2: {}", found);
 }
 
-// fn part1(matrix: &Vec<Vec<u8>>) -> u32 {
-//     let needle: Vec<_> = "XMAS".as_bytes().to_owned();
-
-//     let directions: Vec<Coord> = (-1..=1)
-//         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
-//         .filter(|c| !(c.x == 0 && c.y == 0))
-//         .collect();
-
-//     let total_found: u32 = directions
-//         .into_iter()
-//         .map(|dir| {
-//             let found: u32 = (0..matrix.len() as i32)
-//                 .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
-//                 .map(|start| rec_find_needle(&start, &dir, &needle, &matrix))
-//                 .sum();
-
-//             found
-//         })
-//         .sum();
-//     total_found
-// }
+fn part1(page_orders: &[PageOrder], pages_updates: &[PageUpdate]) -> u32 {
+    get_correct_order_middle_numbers_iterator(page_orders, pages_updates).sum()
+}
 
 fn read_pages(filename: &str) -> (Vec<PageOrder>, Vec<PageUpdate>) {
     let lines = read_lines(filename);
@@ -100,19 +37,19 @@ fn read_pages(filename: &str) -> (Vec<PageOrder>, Vec<PageUpdate>) {
                 let numbers = line
                     .clone()
                     .split('|')
-                    .map(|n| n.parse::<u8>().unwrap())
+                    .map(|n| n.parse::<u32>().unwrap())
                     .collect::<Vec<_>>();
 
                 page_orders.push(PageOrder {
-                    page: numbers[0],
-                    before_page: numbers[1],
+                    before_page: numbers[0],
+                    page: numbers[1],
                 });
             }
             if line.contains(',') {
                 let numbers = line
                     .clone()
                     .split(',')
-                    .map(|n| n.parse::<u8>().unwrap())
+                    .map(|n| n.parse::<u32>().unwrap())
                     .collect::<Vec<_>>();
 
                 pages_updates.push(PageUpdate { pages: numbers });
@@ -125,70 +62,35 @@ fn read_pages(filename: &str) -> (Vec<PageOrder>, Vec<PageUpdate>) {
     (page_orders, pages_updates)
 }
 
-// fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Vec<u8>>) -> u32 {
-//     if let Some(char) = needle.first() {
-//         if let Some(matrix_value) = start.try_get_matrix_value(matrix) {
-//             let is_match = matrix_value == *char;
-//             if is_match {
-//                 if needle.len() == 1 {
-//                     return 1;
-//                 }
-//                 let next = start + dir;
-//                 let next_needle: Vec<u8> = needle[1..].to_owned();
-//                 return rec_find_needle(&next, dir, &next_needle, matrix);
-//             }
-//         }
-//     }
+fn is_correct_order(page_orders: &[PageOrder], pages_updates: &PageUpdate) -> bool {
+    let pages = &pages_updates.pages;
+    pages.iter().enumerate().all(|(index, page)| {
+        let other_pages = pages[index + 1..].to_vec();
+        let is_in_correct_order = !page_orders
+            .iter()
+            .filter(|p| p.page == *page)
+            .map(|p| p.before_page)
+            .any(|before_page| other_pages.iter().any(|p| *p == before_page));
 
-//     0
-// }
+        is_in_correct_order
+    })
+}
 
-// fn part2(matrix: &Vec<Vec<u8>>) -> i32 {
-//     let needle: Vec<_> = "MAS".as_bytes().to_owned();
+fn get_correct_order_iter<'a>(
+    page_orders: &'a [PageOrder],
+    pages_updates: &'a [PageUpdate],
+) -> impl Iterator<Item = &'a PageUpdate> {
+    pages_updates
+        .iter()
+        .filter(|pu| is_correct_order(page_orders, pu))
+}
 
-//     let directions: Vec<Coord> = (-1..=1)
-//         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
-//         .filter(|c| !(c.x == 0 || c.y == 0))
-//         .collect();
-
-//     let coords: Vec<_> = (0..matrix.len() as i32)
-//         .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
-//         .collect();
-
-//     let found = directions
-//         .iter()
-//         .flat_map(|dir| {
-//             coords.iter().filter_map(|start| {
-//                 let found = rec_find_needle(&start, dir, &needle, &matrix);
-
-//                 if found > 0 {
-//                     let a_coord = start + dir;
-//                     let sign: i32 = dir.x * dir.y;
-//                     // println!("A={:?}, {:?}, sign= {}", a_coord, dir, sign);
-//                     return Some((a_coord, sign));
-//                 }
-
-//                 None
-//             })
-//         })
-//         .fold(HashMap::<Coord, i32>::new(), |mut acc, next| {
-//             let coord = next.0;
-//             let sign = next.1;
-
-//             let stored_sign = acc.entry(coord).or_insert(0);
-//             *stored_sign += sign;
-
-//             acc
-//         })
-//         .iter()
-//         .fold(0, |sum, next| {
-//             if *next.1 == 0 {
-//                 return sum + 1;
-//             }
-//             sum
-//         });
-//     found
-// }
+fn get_correct_order_middle_numbers_iterator<'a>(
+    page_orders: &'a [PageOrder],
+    pages_updates: &'a [PageUpdate],
+) -> impl Iterator<Item = &'a u32> {
+    get_correct_order_iter(page_orders, pages_updates).map(|pu| &pu.pages[pu.pages.len() / 2])
+}
 
 #[cfg(test)]
 mod tests {
@@ -201,19 +103,63 @@ mod tests {
         assert_eq!(
             page_orders[0],
             PageOrder {
-                page: 47,
-                before_page: 53
+                before_page: 47,
+                page: 53,
             }
         );
         assert_eq!(pages_updates.len(), 6);
+        assert_eq!(pages_updates[0].pages, vec![75, 47, 61, 53, 29]);
     }
 
-    // #[test]
-    // fn test_part_1() {
-    //     let matrix = read_matrix("./input_example");
-    //     let sum = part1(&matrix);
-    //     assert_eq!(sum, 18);
-    // }
+    #[test]
+    fn test_correct_order() {
+        let (page_orders, pages_updates) = read_pages("./input_example");
+        assert_correct_order(&page_orders, &pages_updates, 0, true);
+        assert_correct_order(&page_orders, &pages_updates, 1, true);
+        assert_correct_order(&page_orders, &pages_updates, 2, true);
+        assert_correct_order(&page_orders, &pages_updates, 3, false);
+        assert_correct_order(&page_orders, &pages_updates, 4, false);
+        assert_correct_order(&page_orders, &pages_updates, 5, false);
+    }
+
+    fn assert_correct_order(
+        page_orders: &Vec<PageOrder>,
+        pages_updates: &Vec<PageUpdate>,
+        index: usize,
+        expected: bool,
+    ) {
+        assert_eq!(
+            is_correct_order(page_orders, &pages_updates[index]),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_correct_order_iterator() {
+        let (page_orders, pages_updates) = read_pages("./input_example");
+        let iter = get_correct_order_iter(&page_orders, &pages_updates);
+
+        assert_eq!(iter.count(), 3);
+    }
+
+    #[test]
+    fn test_correct_order_middle_numbers_iterator() {
+        let (page_orders, pages_updates) = read_pages("./input_example");
+        let numbers = get_correct_order_middle_numbers_iterator(&page_orders, &pages_updates)
+            .collect::<Vec<_>>();
+
+        assert_eq!(numbers.len(), 3);
+        assert_eq!(numbers[0], &61);
+        assert_eq!(numbers[1], &53);
+        assert_eq!(numbers[2], &29);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let (page_orders, pages_updates) = read_pages("./input_example");
+        let sum = part1(&page_orders, &pages_updates);
+        assert_eq!(sum, 143);
+    }
 
     // #[test]
     // fn test_part_2() {
