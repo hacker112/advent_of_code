@@ -10,7 +10,7 @@ def parse_integers(input_data: str) -> List[int]:
     Returns:
         List[int]: List of parsed integers
     """
-    return [int(line) for line in input_data.splitlines()]
+    return [[int(num) for num in row.split()] for row in input_data]
 
 def parse_str_lines(input_data: str) -> List[str]:
     """
@@ -20,7 +20,7 @@ def parse_str_lines(input_data: str) -> List[str]:
         input_data (str): Raw input string
     
     Returns:
-        List[str]: List of input lines
+        List[str]: List of input lines    return [[int(num) for num in row.split()] for row in data]
     """
     return input_data.splitlines()
 
@@ -30,12 +30,14 @@ def parse_grid(input_data: str, convert_type: type = str) -> List[List[Union[str
     
     Args:
         input_data (str): Raw input string
-        convert_type (type, optional): Type to convert grid elements to. Defaults to str.
+        convert_type (type, optional): Type to convert grid e2024/Mikael-Eklund-Python/advent_of_data = input_file.read().split("\n")code/solutions/day_template.pylements to. Defaults to str.
     
     Returns:
         List[List[Union[str, int]]]: 2D grid of parsed elements
     """
+    
+
     return [
-        [convert_type(char) for char in line.strip()]
+        [convert_type(num) for num in line.strip().split()]
         for line in input_data.splitlines()
     ]

@@ -14,7 +14,8 @@ def part1(input_data: str) -> int:
     dist = 0
     lstr = []
     rstr = []
-    strings = parse_str_lines(input_data)
+    strings = input_data
+    #strings = parse_str_lines(input_data)
     for string in strings:
         string = string.strip().split(' ')
         lstr.append(int(string[0]))
@@ -40,7 +41,8 @@ def part2(input_data: str) -> int:
     dist = 0
     lstr = []
     rstr = []
-    strings = parse_str_lines(input_data)
+    strings = input_data
+    #strings = parse_str_lines(input_data)
     for string in strings:
         string = string.strip().split(' ')
         lstr.append(int(string[0]))

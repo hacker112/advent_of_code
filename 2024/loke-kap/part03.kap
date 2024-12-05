@@ -1,0 +1,12 @@
+computeResults ⇐ {
+	+/ ×/ ⍎¨ 1↓[1] ⊃ "mul\\(([0-9]+),([0-9]+)\\)" regex:findall ⍵
+}
+
+solve1 ⇐ {
+	computeResults ⊃,/io:read "part03.txt"
+}
+
+solve2 ⇐ {
+	a ← ⊃,/io:read "part03.txt"
+	computeResults a /⍨ ~ ¯1 + ↓ {(⍵=0)⊇⍵ ⍺}\ 1, +⌿ ⊃ 1 2 × "do()" "don't()" ⍷¨ ⊂a
+}

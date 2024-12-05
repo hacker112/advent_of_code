@@ -4,29 +4,14 @@ from pathlib import Path
 
 
 def puzzle1(input_file: Path):
-    l1 = []
-    l2 = []
-    for line in input_file.read_text().splitlines():
-        v1, v2 = line.split()
-        l1.append(int(v1))
-        l2.append(int(v2))
-
-    l1 = sorted(l1)
-    l2 = sorted(l2)
-
-    return sum(abs(v1 - v2) for v1, v2 in zip(l1, l2))
-
+    values = [int(value) for value in input_file.read_text().split()]
+    return sum(abs(v1 - v2) for v1, v2 in zip(sorted(values[::2]), sorted(values[1::2])))
 
 def puzzle2(input_file: Path):
-    l1 = []
-    l2 = []
-    for line in input_file.read_text().splitlines():
-        v1, v2 = line.split()
-        l1.append(int(v1))
-        l2.append(int(v2))
-
-    counts = Counter(l2)
-    return sum(v * counts[v] for v in l1)
+    all_values = [int(value) for value in input_file.read_text().split()]
+    values = all_values[::2]
+    counts = Counter(all_values[1::2])
+    return sum(v * counts[v] for v in values)
 
 
 if __name__ == "__main__":

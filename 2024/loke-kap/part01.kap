@@ -1,0 +1,19 @@
+part1 ⇐ {
+	+/ | ⊃-/ ∧¨ ⊂[0] ⍎¨ ⊃ (@\s≠)⍛⊂¨ io:read "part01.txt"
+}
+
+⍝ The first line reads the input data into a 2-dimensional array with 2 columns and
+⍝ then splits out the columns and assigns them to the variables a and b.
+⍝
+⍝ The second line then simply performs the task in the problem by iterating over
+⍝ all the elements of a, multiplying it with the count of the value in b.
+part2 ⇐ {
+	(a b) ← ⊂[0] ⍎¨ ⊃ (@\s≠)⍛⊂¨ io:read "part01.txt"
+	+/ a {⍺×+/⍺=⍵}¨ ⊂b
+}
+
+⍝ The below code is a tacit version of solve2 which does not use any
+⍝ explicit variables.
+part2tacit ⇐ {
+	+/ ⊃ ⊣«×»(+/=)¨∘⊂/ ⊂[0] ⍎¨ ⊃ (@\s≠)⍛⊂¨ io:read "part01.txt"
+}

@@ -1,0 +1,28 @@
+⍝ Part 1
+
+isSafe ⇐ {
+	diffs ← 2 -/ ⍵
+	(∧/ 3 ≥ |diffs) ∧ ∨/∧/ ¯1 1 =⌻ ×diffs
+}
+
+solve1 ⇐ {
+	a ← (⍎¨(@\s≠)⍛⊂)¨ io:read "part02.txt"
+	+/ isSafe¨ a
+}
+
+⍝ Part 2
+
+isSafe2 ⇐ {
+	⍝ Possibly a sloppy approach, just try multiple times with different cases removed.
+	⍝ If any one suceeds, the entire test succeeded.
+
+	⍝ Create a set of bitmaps that indicates which elements to keep
+	bitmaps ← (⍳≢⍵) ⌽¨ ⊂~(≢⍵)↑1
+	⍝ Call the old isSafe function with a different element removed each time
+	∨/ (isSafe ⍵/⍨)¨ bitmaps
+}
+
+solve2 ⇐ {
+	a ← (⍎¨(@\s≠)⍛⊂)¨ io:read "part02.txt"
+	+/ isSafe2¨ a
+}
