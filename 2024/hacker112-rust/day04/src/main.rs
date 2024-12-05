@@ -46,20 +46,22 @@ impl Coord {
 }
 
 fn main() {
-    part1();
-    part2();
+    let filename = "./input";
+    let matrix = read_matrix(filename);
+    let total_found = part1(&matrix);
+    println!("part 1: {}", total_found);
+
+    let found = part2(&matrix);
+    println!("part 2: {}", found);
 }
 
-fn part1() {
+fn part1(matrix: &Vec<Vec<u8>>) -> u32 {
     let needle: Vec<_> = "XMAS".as_bytes().to_owned();
 
     let directions: Vec<Coord> = (-1..=1)
         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
         .filter(|c| !(c.x == 0 && c.y == 0))
         .collect();
-
-    let lines = read_lines("./input");
-    let matrix: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_owned()).collect();
 
     let total_found: u32 = directions
         .into_iter()
@@ -72,7 +74,13 @@ fn part1() {
             found
         })
         .sum();
-    println!("part 1: {}", total_found);
+    total_found
+}
+
+fn read_matrix(filename: &str) -> Vec<Vec<u8>> {
+    let lines = read_lines(filename);
+    let matrix: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_owned()).collect();
+    matrix
 }
 
 fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Vec<u8>>) -> u32 {
@@ -93,16 +101,13 @@ fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Ve
     0
 }
 
-fn part2() {
+fn part2(matrix: &Vec<Vec<u8>>) -> i32 {
     let needle: Vec<_> = "MAS".as_bytes().to_owned();
 
     let directions: Vec<Coord> = (-1..=1)
         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
         .filter(|c| !(c.x == 0 || c.y == 0))
         .collect();
-
-    let lines = read_lines("./input");
-    let matrix: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_owned()).collect();
 
     let coords: Vec<_> = (0..matrix.len() as i32)
         .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
@@ -140,6 +145,30 @@ fn part2() {
             }
             sum
         });
+    found
+}
 
-    println!("part 2: {}", found);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lists() {
+        let matrix = read_matrix("./input_example");
+        assert_eq!(matrix[0][0], 77);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let matrix = read_matrix("./input_example");
+        let sum = part1(&matrix);
+        assert_eq!(sum, 18);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let matrix = read_matrix("./input_example");
+        let sum = part2(&matrix);
+        assert_eq!(sum, 9);
+    }
 }
