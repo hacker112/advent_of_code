@@ -1,7 +1,36 @@
 use shared::read_lines;
 
 fn main() {
-    let lines = read_lines("./input");
+    let filename = "./input";
+    let (first, second) = read_sorted_lists(filename);
+
+    let sum = part1(&first, &second);
+
+    println!("part 1: {}", sum);
+
+    let similarities = part2(&first, &second);
+    println!("part 2: {}", similarities);
+}
+
+fn part2(first: &Vec<u32>, second: &Vec<u32>) -> u32 {
+    let similarities = similiarities_sum(&first, &second);
+    similarities
+}
+
+fn part1(first: &Vec<u32>, second: &Vec<u32>) -> u32 {
+    let sum: u32 = first
+        .iter()
+        .zip(second.iter())
+        .map(|x| {
+            let distance = x.0.abs_diff(*x.1);
+            distance
+        })
+        .sum();
+    sum
+}
+
+fn read_sorted_lists(filename: &str) -> (Vec<u32>, Vec<u32>) {
+    let lines = read_lines(filename);
 
     let (mut first, mut second) =
         lines.fold((Vec::<u32>::new(), Vec::<u32>::new()), |mut acc, line| {
@@ -18,19 +47,7 @@ fn main() {
     first.sort();
     second.sort();
 
-    let sum: u32 = first
-        .iter()
-        .zip(second.iter())
-        .map(|x| {
-            let distance = x.0.abs_diff(*x.1);
-            distance
-        })
-        .sum();
-
-    println!("part 1: {}", sum);
-
-    let similarities = similiarities_sum(&first, &second);
-    println!("part 2: {}", similarities);
+    (first, second)
 }
 
 fn similiarities_sum(a: &Vec<u32>, b: &Vec<u32>) -> u32 {
@@ -52,14 +69,28 @@ fn similarity_score(needle: &u32, haystack: &Vec<u32>) -> u32 {
     t as u32 * needle
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_part_1_example() {
-//         let lines = read_lines("./test_lines.txt");
-//         let all_lines: Vec<String> = lines.collect();
-//         assert_eq!(all_lines, vec!["A", "B", "C"]);
-//     }
-// }
+    #[test]
+    fn test_lists() {
+        let (first, second) = read_sorted_lists("./input_example");
+        assert_eq!(first, vec![1, 2, 3, 3, 3, 4]);
+        assert_eq!(second, vec![3, 3, 3, 4, 5, 9]);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let (first, second) = read_sorted_lists("./input_example");
+        let sum = part1(&first, &second);
+        assert_eq!(sum, 11);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let (first, second) = read_sorted_lists("./input_example");
+        let sum = part2(&first, &second);
+        assert_eq!(sum, 31);
+    }
+}
