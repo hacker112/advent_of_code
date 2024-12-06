@@ -1,5 +1,4 @@
 use shared::read_lines;
-// use std::{collections::HashMap, ops};
 
 #[derive(Debug, PartialEq)]
 struct PageOrder {
@@ -74,23 +73,11 @@ fn is_correct_order(page_orders: &[PageOrder], pages_updates: &PageUpdate) -> bo
     let pages = &pages_updates.pages;
     pages.iter().enumerate().all(|(index, page)| {
         let other_pages = pages[index + 1..].to_vec();
-        let is_in_correct_order = !page_is_in_incorrect_order(page_orders, page, other_pages);
+        let is_in_correct_order =
+            page_in_incorrect_order_index(page_orders, page, other_pages) == None;
 
         is_in_correct_order
     })
-}
-
-// TODO use first_incorrect_order_indexes?
-fn page_is_in_incorrect_order(
-    page_orders: &[PageOrder],
-    page: &u32,
-    other_pages: Vec<u32>,
-) -> bool {
-    page_orders
-        .iter()
-        .filter(|p| p.page == *page)
-        .map(|p| p.before_page)
-        .any(|before_page| other_pages.iter().any(|p| *p == before_page))
 }
 
 fn page_in_incorrect_order_index(
@@ -133,24 +120,6 @@ fn first_incorrect_order_indexes(
     });
 
     found
-}
-
-// TODO? REMOVE
-fn first_incorrect_order_index(
-    page_orders: &[PageOrder],
-    pages_updates: &PageUpdate,
-) -> Option<usize> {
-    let pages = &pages_updates.pages;
-
-    let found = pages.iter().enumerate().find(|(index, page)| {
-        let other_pages = pages[index + 1..].to_vec();
-        page_is_in_incorrect_order(page_orders, page, other_pages)
-    });
-
-    match found {
-        Some((index, _page)) => Some(index),
-        None => None,
-    }
 }
 
 fn get_correct_order_iter<'a>(
@@ -269,30 +238,6 @@ mod tests {
 
         assert_eq!(page_updated.len(), 3);
         assert_eq!(page_updated[0].pages, vec![75, 97, 47, 61, 53]);
-    }
-
-    #[test]
-    fn test_first_incorrect_order_index() {
-        let (page_orders, _) = read_pages("./input_example");
-
-        assert_eq!(
-            first_incorrect_order_index(
-                &page_orders,
-                &PageUpdate {
-                    pages: vec![75, 47, 61, 53, 29],
-                },
-            ),
-            None
-        );
-        assert_eq!(
-            first_incorrect_order_index(
-                &page_orders,
-                &PageUpdate {
-                    pages: vec![75, 97, 47, 61, 53],
-                },
-            ),
-            Some(0)
-        );
     }
 
     #[test]
