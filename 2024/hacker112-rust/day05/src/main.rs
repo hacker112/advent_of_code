@@ -91,7 +91,7 @@ fn page_in_incorrect_order_index(
         .map(|p| p.before_page)
         .collect::<Vec<u32>>();
 
-    let found: Option<(usize, &u32)> = other_pages.iter().enumerate().find(|(index, page)| {
+    let found: Option<(usize, &u32)> = other_pages.iter().enumerate().find(|(_index, page)| {
         before_pages
             .iter()
             .any(|before_page| *before_page == **page)
