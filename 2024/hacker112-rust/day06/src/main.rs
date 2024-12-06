@@ -2,7 +2,7 @@ use shared::read_lines;
 
 fn main() {
     let filename = "./input";
-    let _matrix = read_matrix(filename);
+    let _matrix = read_map(filename);
     // let total_found = part1(&matrix);
     // println!("part 1: {}", total_found);
 
@@ -10,29 +10,80 @@ fn main() {
     // println!("part 2: {}", found);
 }
 
-// fn part1(matrix: &Vec<Vec<u8>>) -> u32 {
-//     let needle: Vec<_> = "XMAS".as_bytes().to_owned();
+struct Map {
+    items: Vec<Vec<MapItem>>,
+}
 
-//     let directions: Vec<Coord> = (-1..=1)
-//         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
-//         .filter(|c| !(c.x == 0 && c.y == 0))
-//         .collect();
+impl Map {
+    fn get_item(&self, (row, col): (usize, usize)) -> MapItem {
+        self.items[row][col].to_owned()
+    }
 
-//     let total_found: u32 = directions
-//         .into_iter()
-//         .map(|dir| {
-//             let found: u32 = (0..matrix.len() as i32)
-//                 .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
-//                 .map(|start| rec_find_needle(&start, &dir, &needle, &matrix))
-//                 .sum();
+    fn set_item(&mut self, (row, col): (usize, usize), item: MapItem) {
+        self.items[row][col] = item;
+    }
 
-//             found
-//         })
-//         .sum();
-//     total_found
-// }
+    fn copy(&self) -> Map {
+        Map {
+            items: self.items.to_vec(),
+        }
+    }
 
-#[derive(Debug, PartialEq)]
+    fn step(&self) -> Map {
+        let mut next_map = self.copy();
+
+        let (row_index, col_index, item) = self
+            .items
+            .iter()
+            .enumerate()
+            .find_map(|(row_index, row)| {
+                let found = row
+                    .iter()
+                    .enumerate()
+                    .find_map(|(col_index, item)| match item {
+                        MapItem::Guard(_) => Some((col_index, item)),
+                        _ => None,
+                    });
+
+                match found {
+                    Some((col_index, item)) => {
+                        Some((row_index.to_owned(), col_index, item.to_owned()))
+                    }
+                    None => None,
+                }
+            })
+            .unwrap();
+
+        let coords = (row_index, col_index);
+        let next_coords = (row_index - 1, col_index);
+        // let next_row_index = row_index - 1;
+        // let next_col_index = col_index;
+
+        println!(
+            "now={},{}, item={:?}, next=,{:?}",
+            row_index, col_index, item, next_coords
+        );
+
+        if MapItem::Obstacle == self.get_item(next_coords) {
+            next_map.set_item(coords, MapItem::Guard(Direction::Right));
+        } else {
+            next_map.set_item(coords, MapItem::GuardVisited);
+            // TODO CURRENT ITEM
+            next_map.set_item(next_coords, MapItem::Guard(Direction::Up));
+        }
+
+        next_map
+    }
+
+    fn steps(&self, number_of_steps: usize) -> Map {
+        if number_of_steps <= 1 {
+            return self.step();
+        }
+        self.step().steps(number_of_steps - 1)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 enum Direction {
     Up,
     Right,
@@ -40,11 +91,12 @@ enum Direction {
     Left,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum MapItem {
     Empty,
     Obstacle,
     Guard(Direction),
+    GuardVisited,
 }
 
 fn read_char(c: char) -> MapItem {
@@ -59,78 +111,13 @@ fn read_char(c: char) -> MapItem {
     }
 }
 
-fn read_matrix(filename: &str) -> Vec<Vec<MapItem>> {
+fn read_map(filename: &str) -> Map {
     let lines = read_lines(filename);
-    let matrix = lines
+    let items = lines
         .map(|line| line.chars().map(|c| read_char(c)).collect::<Vec<MapItem>>())
         .collect::<Vec<Vec<MapItem>>>();
-    matrix
+    Map { items }
 }
-
-// fn rec_find_needle(start: &Coord, dir: &Coord, needle: &Vec<u8>, matrix: &Vec<Vec<u8>>) -> u32 {
-//     if let Some(char) = needle.first() {
-//         if let Some(matrix_value) = start.try_get_matrix_value(matrix) {
-//             let is_match = matrix_value == *char;
-//             if is_match {
-//                 if needle.len() == 1 {
-//                     return 1;
-//                 }
-//                 let next = start + dir;
-//                 let next_needle: Vec<u8> = needle[1..].to_owned();
-//                 return rec_find_needle(&next, dir, &next_needle, matrix);
-//             }
-//         }
-//     }
-
-//     0
-// }
-
-// fn part2(matrix: &Vec<Vec<u8>>) -> i32 {
-//     let needle: Vec<_> = "MAS".as_bytes().to_owned();
-
-//     let directions: Vec<Coord> = (-1..=1)
-//         .flat_map(|x| (-1..=1).map(move |y| Coord { x, y }))
-//         .filter(|c| !(c.x == 0 || c.y == 0))
-//         .collect();
-
-//     let coords: Vec<_> = (0..matrix.len() as i32)
-//         .flat_map(|x| (0..matrix[x as usize].len() as i32).map(move |y| Coord { x, y }))
-//         .collect();
-
-//     let found = directions
-//         .iter()
-//         .flat_map(|dir| {
-//             coords.iter().filter_map(|start| {
-//                 let found = rec_find_needle(&start, dir, &needle, &matrix);
-
-//                 if found > 0 {
-//                     let a_coord = start + dir;
-//                     let sign: i32 = dir.x * dir.y;
-//                     // println!("A={:?}, {:?}, sign= {}", a_coord, dir, sign);
-//                     return Some((a_coord, sign));
-//                 }
-
-//                 None
-//             })
-//         })
-//         .fold(HashMap::<Coord, i32>::new(), |mut acc, next| {
-//             let coord = next.0;
-//             let sign = next.1;
-
-//             let stored_sign = acc.entry(coord).or_insert(0);
-//             *stored_sign += sign;
-
-//             acc
-//         })
-//         .iter()
-//         .fold(0, |sum, next| {
-//             if *next.1 == 0 {
-//                 return sum + 1;
-//             }
-//             sum
-//         });
-//     found
-// }
 
 #[cfg(test)]
 mod tests {
@@ -148,9 +135,43 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let matrix = read_matrix("./input_example");
-        assert_eq!(matrix[0][0], MapItem::Empty);
+        let map = read_map("./input_example");
+        assert_eq!(map.get_item((0, 0)), MapItem::Empty);
+        assert_eq!(map.get_item((0, 4)), MapItem::Obstacle);
+        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
     }
+
+    #[test]
+    fn test_step() {
+        let map = read_map("./input_example");
+        let next_map = map.step();
+        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.get_item((6, 4)), MapItem::GuardVisited);
+        assert_eq!(map.get_item((5, 4)), MapItem::Empty);
+        assert_eq!(next_map.get_item((5, 4)), MapItem::Guard(Direction::Up));
+    }
+
+    #[test]
+    fn test_steps() {
+        let map = read_map("./input_example");
+        let next_map = map.steps(2);
+        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.get_item((4, 4)), MapItem::Guard(Direction::Up));
+    }
+
+    // TODO
+    // #[test]
+    // fn test_steps_obstacle_should_turn_guard() {
+    //     let matrix = read_map("./input_example");
+    //     let next_matrix = steps(&matrix, 5);
+    //     assert_eq!(matrix[6][4], MapItem::Guard(Direction::Up));
+    //     assert_eq!(next_matrix[1][4], MapItem::Guard(Direction::Up));
+    //     let next_matrix_with_turned_guard = steps(&next_matrix, 1);
+    //     assert_eq!(
+    //         next_matrix_with_turned_guard[1][4],
+    //         MapItem::Guard(Direction::Right)
+    //     );
+    // }
 
     // #[test]
     // fn test_part_1() {
