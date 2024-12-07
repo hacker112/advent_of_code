@@ -10,6 +10,7 @@ fn main() {
     // println!("part 2: {}", found);
 }
 
+#[derive(Debug)]
 struct Map {
     items: Vec<Vec<MapItem>>,
 }
@@ -21,6 +22,18 @@ impl Map {
 
     fn set_item(&mut self, (row, col): (usize, usize), item: MapItem) {
         self.items[row][col] = item;
+    }
+
+    fn count_guard_visited(&self) -> usize {
+        self.items
+            .iter()
+            .flatten()
+            .filter(|item| match item {
+                MapItem::Guard(_) => true,
+                MapItem::GuardVisited => true,
+                _ => false,
+            })
+            .count()
     }
 
     fn copy(&self) -> Map {
@@ -54,22 +67,21 @@ impl Map {
             })
             .unwrap();
 
+        let guard_direction = match item {
+            MapItem::Guard(direction) => direction,
+            _ => panic!("Ooops"),
+        };
         let coords = (row_index, col_index);
-        let next_coords = (row_index - 1, col_index);
-        // let next_row_index = row_index - 1;
-        // let next_col_index = col_index;
+        let next_coords = guard_direction.step_forward(coords);
 
-        println!(
-            "now={},{}, item={:?}, next=,{:?}",
-            row_index, col_index, item, next_coords
-        );
+        println!("now={},{}, next=,{:?}", row_index, col_index, next_coords);
 
         if MapItem::Obstacle == self.get_item(next_coords) {
-            next_map.set_item(coords, MapItem::Guard(Direction::Right));
+            next_map.set_item(coords, MapItem::Guard(guard_direction.turn_right()));
         } else {
             next_map.set_item(coords, MapItem::GuardVisited);
             // TODO CURRENT ITEM
-            next_map.set_item(next_coords, MapItem::Guard(Direction::Up));
+            next_map.set_item(next_coords, MapItem::Guard(guard_direction));
         }
 
         next_map
@@ -83,12 +95,36 @@ impl Map {
     }
 }
 
+// fn fun_name(row_index: usize, col_index: usize) -> (usize, usize) {
+//     let next_coords = (row_index - 1, col_index);
+//     next_coords
+// }
+
 #[derive(Debug, PartialEq, Clone)]
 enum Direction {
     Up,
     Right,
     Down,
     Left,
+}
+
+impl Direction {
+    fn step_forward(&self, (row_index, col_index): (usize, usize)) -> (usize, usize) {
+        match self {
+            Direction::Up => (row_index - 1, col_index),
+            Direction::Right => (row_index, col_index + 1),
+            Direction::Down => (row_index + 1, col_index),
+            Direction::Left => (row_index, col_index - 1),
+        }
+    }
+    fn turn_right(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Right => Direction::Down,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -143,35 +179,76 @@ mod tests {
 
     #[test]
     fn test_step() {
+        // Arrange
         let map = read_map("./input_example");
+
+        // Act
         let next_map = map.step();
+
+        // Assert
+        assert_eq!(map.count_guard_visited(), 1);
+        assert_eq!(map.get_item((5, 4)), MapItem::Empty);
         assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
         assert_eq!(next_map.get_item((6, 4)), MapItem::GuardVisited);
-        assert_eq!(map.get_item((5, 4)), MapItem::Empty);
         assert_eq!(next_map.get_item((5, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.count_guard_visited(), 2);
+    }
+
+    #[test]
+    fn test_step_forward() {
+        assert_eq!((Direction::Up).step_forward((6, 4)), (5, 4));
+        assert_eq!((Direction::Down).step_forward((6, 4)), (7, 4));
+        assert_eq!((Direction::Left).step_forward((6, 4)), (6, 3));
+        assert_eq!((Direction::Right).step_forward((6, 4)), (6, 5));
+    }
+    #[test]
+    fn test_turn_right() {
+        assert_eq!((Direction::Up).turn_right(), Direction::Right);
+        assert_eq!((Direction::Right).turn_right(), Direction::Down);
+        assert_eq!((Direction::Down).turn_right(), Direction::Left);
+        assert_eq!((Direction::Left).turn_right(), Direction::Up);
     }
 
     #[test]
     fn test_steps() {
+        // Arrange
         let map = read_map("./input_example");
+
+        // Act
         let next_map = map.steps(2);
+
+        // Assert
         assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
         assert_eq!(next_map.get_item((4, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.count_guard_visited(), 3);
     }
 
-    // TODO
-    // #[test]
-    // fn test_steps_obstacle_should_turn_guard() {
-    //     let matrix = read_map("./input_example");
-    //     let next_matrix = steps(&matrix, 5);
-    //     assert_eq!(matrix[6][4], MapItem::Guard(Direction::Up));
-    //     assert_eq!(next_matrix[1][4], MapItem::Guard(Direction::Up));
-    //     let next_matrix_with_turned_guard = steps(&next_matrix, 1);
-    //     assert_eq!(
-    //         next_matrix_with_turned_guard[1][4],
-    //         MapItem::Guard(Direction::Right)
-    //     );
-    // }
+    #[test]
+    fn test_steps_obstacle_should_turn_guard() {
+        // Arrange
+        let map = read_map("./input_example");
+        // Act
+        let next_map = map.steps(6);
+
+        // Assert
+        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.get_item((1, 4)), MapItem::Guard(Direction::Right));
+        assert_eq!(next_map.count_guard_visited(), 6);
+    }
+
+    #[test]
+    fn test_todo() {
+        // Arrange
+        let map = read_map("./input_example");
+        // Act
+        let next_map = map.steps(70);
+
+        // Assert
+        dbg!(next_map);
+        // assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
+        // assert_eq!(next_map.get_item((1, 4)), MapItem::Guard(Direction::Right));
+        // assert_eq!(next_map.count_guard_visited(), 6);
+    }
 
     // #[test]
     // fn test_part_1() {
