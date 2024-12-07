@@ -40,7 +40,7 @@ impl Map {
             .flatten()
             .filter(|item| match item {
                 MapItem::Guard(_) => true,
-                MapItem::GuardVisited => true,
+                MapItem::GuardVisited(_) => true,
                 _ => false,
             })
             .count()
@@ -90,8 +90,7 @@ impl Map {
             if next_item == MapItem::Obstacle {
                 next_map.set_item(coords, MapItem::Guard(guard_direction.turn_right()));
             } else {
-                next_map.set_item(coords, MapItem::GuardVisited);
-                // TODO CURRENT ITEM
+                next_map.set_item(coords, MapItem::GuardVisited(guard_direction.to_owned()));
                 next_map.set_item(next_coords, MapItem::Guard(guard_direction));
             }
         } else {
@@ -153,7 +152,7 @@ enum MapItem {
     Empty,
     Obstacle,
     Guard(Direction),
-    GuardVisited,
+    GuardVisited(Direction),
 }
 
 fn read_char(c: char) -> MapItem {
@@ -210,7 +209,10 @@ mod tests {
         assert_eq!(map.count_guard_visited(), 1);
         assert_eq!(map.get_item((5, 4)).unwrap(), MapItem::Empty);
         assert_eq!(map.get_item((6, 4)).unwrap(), MapItem::Guard(Direction::Up));
-        assert_eq!(next_map.get_item((6, 4)).unwrap(), MapItem::GuardVisited);
+        assert_eq!(
+            next_map.get_item((6, 4)).unwrap(),
+            MapItem::GuardVisited(Direction::Up)
+        );
         assert_eq!(
             next_map.get_item((5, 4)).unwrap(),
             MapItem::Guard(Direction::Up)
