@@ -2,22 +2,32 @@ use shared::read_lines;
 
 fn main() {
     let filename = "./input";
-    let _matrix = read_map(filename);
-    // let total_found = part1(&matrix);
-    // println!("part 1: {}", total_found);
-
-    // let found = part2(&matrix);
+    let map = read_map(filename);
+    let total_found = part1(&map);
+    println!("part 1: {}", total_found);
+    // let found = part2(&map);
     // println!("part 2: {}", found);
 }
 
-#[derive(Debug)]
+fn part1(map: &Map) -> usize {
+    let next_map = map.step_unil_guard_exits();
+    next_map.count_guard_visited()
+}
+
+#[derive(Debug, PartialEq)]
 struct Map {
     items: Vec<Vec<MapItem>>,
 }
 
 impl Map {
-    fn get_item(&self, (row, col): (usize, usize)) -> MapItem {
-        self.items[row][col].to_owned()
+    fn get_item(&self, (row, col): (usize, usize)) -> Option<MapItem> {
+        if let Some(row_vector) = self.items.get(row) {
+            if let Some(item) = row_vector.get(col) {
+                return Some(item.to_owned());
+            }
+        }
+
+        None
     }
 
     fn set_item(&mut self, (row, col): (usize, usize), item: MapItem) {
@@ -42,7 +52,7 @@ impl Map {
         }
     }
 
-    fn step(&self) -> Map {
+    fn step(&self) -> Option<Map> {
         let mut next_map = self.copy();
 
         let (row_index, col_index, item) = self
@@ -74,31 +84,42 @@ impl Map {
         let coords = (row_index, col_index);
         let next_coords = guard_direction.step_forward(coords);
 
-        println!("now={},{}, next=,{:?}", row_index, col_index, next_coords);
+        // println!("now={},{}, next=,{:?}", row_index, col_index, next_coords);
 
-        if MapItem::Obstacle == self.get_item(next_coords) {
-            next_map.set_item(coords, MapItem::Guard(guard_direction.turn_right()));
+        if let Some(next_item) = self.get_item(next_coords) {
+            if next_item == MapItem::Obstacle {
+                next_map.set_item(coords, MapItem::Guard(guard_direction.turn_right()));
+            } else {
+                next_map.set_item(coords, MapItem::GuardVisited);
+                // TODO CURRENT ITEM
+                next_map.set_item(next_coords, MapItem::Guard(guard_direction));
+            }
         } else {
-            next_map.set_item(coords, MapItem::GuardVisited);
-            // TODO CURRENT ITEM
-            next_map.set_item(next_coords, MapItem::Guard(guard_direction));
+            return None;
         }
 
-        next_map
+        Some(next_map)
     }
 
-    fn steps(&self, number_of_steps: usize) -> Map {
+    fn steps(&self, number_of_steps: usize) -> Option<Map> {
         if number_of_steps <= 1 {
             return self.step();
+        } else if let Some(step) = self.step() {
+            return step.steps(number_of_steps - 1);
         }
-        self.step().steps(number_of_steps - 1)
+
+        None
+    }
+
+    fn step_unil_guard_exits(&self) -> Map {
+        let step = self.step();
+
+        match step {
+            Some(step) => step.step_unil_guard_exits(),
+            None => (self).copy(),
+        }
     }
 }
-
-// fn fun_name(row_index: usize, col_index: usize) -> (usize, usize) {
-//     let next_coords = (row_index - 1, col_index);
-//     next_coords
-// }
 
 #[derive(Debug, PartialEq, Clone)]
 enum Direction {
@@ -172,9 +193,9 @@ mod tests {
     #[test]
     fn test_read() {
         let map = read_map("./input_example");
-        assert_eq!(map.get_item((0, 0)), MapItem::Empty);
-        assert_eq!(map.get_item((0, 4)), MapItem::Obstacle);
-        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(map.get_item((0, 0)).unwrap(), MapItem::Empty);
+        assert_eq!(map.get_item((0, 4)).unwrap(), MapItem::Obstacle);
+        assert_eq!(map.get_item((6, 4)).unwrap(), MapItem::Guard(Direction::Up));
     }
 
     #[test]
@@ -183,14 +204,17 @@ mod tests {
         let map = read_map("./input_example");
 
         // Act
-        let next_map = map.step();
+        let next_map = map.step().unwrap();
 
         // Assert
         assert_eq!(map.count_guard_visited(), 1);
-        assert_eq!(map.get_item((5, 4)), MapItem::Empty);
-        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
-        assert_eq!(next_map.get_item((6, 4)), MapItem::GuardVisited);
-        assert_eq!(next_map.get_item((5, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(map.get_item((5, 4)).unwrap(), MapItem::Empty);
+        assert_eq!(map.get_item((6, 4)).unwrap(), MapItem::Guard(Direction::Up));
+        assert_eq!(next_map.get_item((6, 4)).unwrap(), MapItem::GuardVisited);
+        assert_eq!(
+            next_map.get_item((5, 4)).unwrap(),
+            MapItem::Guard(Direction::Up)
+        );
         assert_eq!(next_map.count_guard_visited(), 2);
     }
 
@@ -215,11 +239,14 @@ mod tests {
         let map = read_map("./input_example");
 
         // Act
-        let next_map = map.steps(2);
+        let next_map = map.steps(2).unwrap();
 
         // Assert
-        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
-        assert_eq!(next_map.get_item((4, 4)), MapItem::Guard(Direction::Up));
+        assert_eq!(map.get_item((6, 4)).unwrap(), MapItem::Guard(Direction::Up));
+        assert_eq!(
+            next_map.get_item((4, 4)).unwrap(),
+            MapItem::Guard(Direction::Up)
+        );
         assert_eq!(next_map.count_guard_visited(), 3);
     }
 
@@ -227,35 +254,48 @@ mod tests {
     fn test_steps_obstacle_should_turn_guard() {
         // Arrange
         let map = read_map("./input_example");
+
         // Act
-        let next_map = map.steps(6);
+        let next_map = map.steps(6).unwrap();
 
         // Assert
-        assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
-        assert_eq!(next_map.get_item((1, 4)), MapItem::Guard(Direction::Right));
+        assert_eq!(map.get_item((6, 4)).unwrap(), MapItem::Guard(Direction::Up));
+        assert_eq!(
+            next_map.get_item((1, 4)).unwrap(),
+            MapItem::Guard(Direction::Right)
+        );
         assert_eq!(next_map.count_guard_visited(), 6);
     }
 
     #[test]
-    fn test_todo() {
+    fn test_steps_too_many_steps_returns_none() {
         // Arrange
         let map = read_map("./input_example");
         // Act
         let next_map = map.steps(70);
 
         // Assert
-        dbg!(next_map);
-        // assert_eq!(map.get_item((6, 4)), MapItem::Guard(Direction::Up));
-        // assert_eq!(next_map.get_item((1, 4)), MapItem::Guard(Direction::Right));
-        // assert_eq!(next_map.count_guard_visited(), 6);
+        assert_eq!(next_map, None);
     }
 
-    // #[test]
-    // fn test_part_1() {
-    //     let matrix = read_matrix("./input_example");
-    //     let sum = part1(&matrix);
-    //     assert_eq!(sum, 18);
-    // }
+    #[test]
+    fn test_step_unil_guard_exits() {
+        // Arrange
+        let map = read_map("./input_example");
+
+        // Act
+        let next_map = map.step_unil_guard_exits();
+
+        // Assert
+        assert_eq!(next_map.count_guard_visited(), 41);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let map = read_map("./input_example");
+        let sum = part1(&map);
+        assert_eq!(sum, 41);
+    }
 
     // #[test]
     // fn test_part_2() {
