@@ -7,20 +7,22 @@ fn main() {
     // println!("part 1: {}", total_found);
     let found = part2(&map);
     println!("part 2: {}", found);
+    // Lower than 2139
 }
 
 fn part1(map: &Map) -> usize {
-    let next_map = map.step_unil_guard_exits();
+    let next_map = map.step_until_guard_exits();
     next_map.count_guard_visited()
 }
 fn part2(map: &Map) -> usize {
-    map.step_unil_guard_exits_and_find_infinte_loops()
+    map.step_until_guard_exits_and_find_infinte_loops()
 }
 
 #[derive(Debug, PartialEq)]
 struct Map {
     items: Vec<Vec<MapItem>>,
     contains_infinite_loop: bool,
+    steps: usize,
 }
 
 impl Map {
@@ -58,19 +60,26 @@ impl Map {
         Map {
             items: self.items.to_vec(),
             contains_infinite_loop: self.contains_infinite_loop,
+            steps: self.steps,
         }
     }
 
     fn step(&self) -> Option<Map> {
         let mut next_map = self.copy();
+        next_map.steps += 1;
 
         let (coords, guard_direction) = self.find_the_guard();
         let next_coords = guard_direction.step_forward(coords);
 
-        // println!("now={},{}, next=,{:?}", row_index, col_index, next_coords);
-
         if let Some(next_item) = self.get_item(next_coords) {
-            if next_item == MapItem::GuardVisited(guard_direction.to_owned()) {
+            // println!(
+            //     "{}:{:?}={:?},{:?}={:?}",
+            //     next_map.steps, coords, guard_direction, next_coords, next_item
+            // );
+            if next_item == MapItem::GuardVisited(guard_direction.to_owned())
+            // This is ugly...
+                || next_map.steps > 500_000
+            {
                 next_map.contains_infinite_loop = true;
             } else if next_item == MapItem::Obstacle {
                 next_map.set_item(coords, MapItem::Guard(guard_direction.turn_right()));
@@ -126,21 +135,32 @@ impl Map {
         None
     }
 
-    fn step_unil_guard_exits(&self) -> Map {
-        let step = self.step();
+    fn step_until_guard_exits(&self) -> Map {
+        let mut last = Some(self.copy());
 
-        match step {
-            Some(step) => {
-                if step.contains_infinite_loop {
-                    return step;
+        loop {
+            match last {
+                Some(step) => {
+                    if step.contains_infinite_loop {
+                        // println!("Inf loop");
+                        return step;
+                    }
+                    let next = step.step();
+                    match next {
+                        None => {
+                            // We have come to an end
+                            return step;
+                        }
+                        _ => (),
+                    }
+                    last = next;
                 }
-                step.step_unil_guard_exits()
+                None => unimplemented!(),
             }
-            None => (self).copy(),
         }
     }
 
-    fn step_unil_guard_exits_and_find_infinte_loops(&self) -> usize {
+    fn step_until_guard_exits_and_find_infinte_loops(&self) -> usize {
         let mut map = Some(self.copy());
         let mut total_loops = 0;
 
@@ -151,9 +171,11 @@ impl Map {
                         .add_obstacle_in_front_of_guard_and_check_if_map_contains_infinite_loops();
                     total_loops += found_loop as usize;
                     println!(
-                        "loops={}, count={}",
+                        "loops={}, steps={}, count={}, inf={}",
                         total_loops,
-                        step.count_guard_visited()
+                        step.steps,
+                        step.count_guard_visited(),
+                        step.contains_infinite_loop
                     );
 
                     map = step.step();
@@ -175,7 +197,7 @@ impl Map {
             return false;
         }
 
-        let walked_obstruction_map = map_with_obstruction.step_unil_guard_exits();
+        let walked_obstruction_map = map_with_obstruction.step_until_guard_exits();
         walked_obstruction_map.contains_infinite_loop
     }
 }
@@ -235,6 +257,7 @@ fn read_map(filename: &str) -> Map {
     Map {
         items,
         contains_infinite_loop: false,
+        steps: 0,
     }
 }
 
@@ -349,7 +372,7 @@ mod tests {
         let map = read_map("./input_example");
 
         // Act
-        let next_map = map.step_unil_guard_exits();
+        let next_map = map.step_until_guard_exits();
 
         // Assert
         assert_eq!(next_map.count_guard_visited(), 41);
@@ -361,7 +384,7 @@ mod tests {
         let map = read_map("./input_example");
 
         // Act
-        let loops = map.step_unil_guard_exits_and_find_infinte_loops();
+        let loops = map.step_until_guard_exits_and_find_infinte_loops();
 
         // Assert
         assert_eq!(loops, 6);
